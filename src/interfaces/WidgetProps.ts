@@ -2,8 +2,8 @@ export interface TableCurrencyProps {
   date: string;
   currencyFrom: string;
   currencyTo: string;
-  amount1: number | string;
-  amount2: number | string;
+  amount1: string;
+  amount2: string;
   type: string;
 }
 

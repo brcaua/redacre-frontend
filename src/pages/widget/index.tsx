@@ -1,24 +1,54 @@
+import { Icon } from "@iconify/react";
 import {
   Alert,
   Button,
   Container,
-  createTheme,
   Grid,
-  IconButton,
-  InputLabel,
-  Paper,
   Select,
   Snackbar,
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import React, { useEffect, useState } from "react";
+import { useQuery } from "react-query";
+import { currencyAPI } from "../../api/currencyAPI";
 import { CurrencyContext } from "../../hooks/useCurrency";
 import TableCurrency from "../components/tableCurrency";
 
-const currencyAPI =
-  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,litecoin&vs_currencies=usd,eur,gbp,jpy,brl";
+const useStyles = {
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+  },
+  header: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    boxShadow: "0px 8px 16px 0px rgba(17, 17, 17, 0.06)",
+    margin: {
+      xs: "2rem 0px",
+      sm: 0,
+    },
+    padding: {
+      xs: 0,
+      sm: 4,
+    },
+    rowGap: {
+      xs: 2,
+      sm: 4,
+    },
+  },
+  table: {
+    padding: {
+      xs: 0,
+      sm: 5,
+    },
+    margin: 0,
+  },
+};
 
 const WidgetCurrency = () => {
   const [currency, setCurrency] = useState("usd");
@@ -26,26 +56,28 @@ const WidgetCurrency = () => {
   const [amount, setAmount] = useState(0);
   const [result, setResult] = useState(0);
   const [open, setOpen] = React.useState(false);
-
+  const { data } = useQuery("currency", () =>
+    fetch(currencyAPI).then((res) => res.json())
+  );
   const { currencyList, cryptoList } = React.useContext(CurrencyContext);
 
-  const getCurrency = async () => {
-    const response = await fetch(currencyAPI);
-    const data = await response.json();
-    setResult(data[crypto][currency] * amount);
-  };
-
   useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch(currencyAPI);
+    try {
+      if (data) {
+        const result: number = data[crypto][currency] * amount;
+        setResult(result);
+      } else {
+        setResult(0);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }, [currency, crypto, amount, data]);
 
-      const data = await response.json();
-      setResult(data[crypto][currency] * amount);
-    };
-    fetchData();
-  }, [currency, crypto, amount]);
-
-  function handleClose(_event?: React.SyntheticEvent | Event, reason?: string) {
+  function handleCloseSnackbar(
+    _event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) {
     if (reason === "clickaway") {
       return;
     }
@@ -58,70 +90,48 @@ const WidgetCurrency = () => {
   }
 
   return (
-    <Container
-      maxWidth="xl"
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-      }}
-    >
-      <Grid
-        container
-        spacing={4}
-        sx={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          paddingTop: 4,
-        }}
-      >
+    <Container maxWidth={false} sx={useStyles.root}>
+      <Grid container columnSpacing={2} sx={useStyles.header}>
         <Grid item xs={12} lg={12}>
-          <Typography variant="h6" component="span">
+          <Typography variant="h5" component="span" fontWeight={700}>
             Exchange
           </Typography>
         </Grid>
-        <Grid item xs={12} xl={2.5} lg={3}>
-          <InputLabel id="currency">Currency from</InputLabel>
+        <Grid item xs={12} xl={2} lg={2}>
+          <label htmlFor="currencyFrom">Currency from</label>
           <Select
+            id="currencyFrom"
             fullWidth
             native
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
+            value={crypto}
+            onChange={(e) => setCrypto(e.target.value)}
             size="small"
           >
-            {currencyList.map((item) => (
-              <option key={item.value} value={item.value}>
+            {cryptoList.map((item, index) => (
+              <option key={index} value={item.value}>
                 {item.name}
               </option>
             ))}
           </Select>
         </Grid>
-        <Grid item xs={12} xl={2.5} lg={3}>
-          <InputLabel id="amount">Amount</InputLabel>
+        <Grid item xs={12} xl={2} lg={2}>
+          <label htmlFor="amount">Amount</label>
           <TextField
+            id="amount"
             fullWidth
             type="number"
             value={amount}
             onChange={(e: any) => setAmount(e.target.value)}
             size="small"
+            placeholder="Enter the amount"
           />
         </Grid>
 
         <Grid
           item
           xl={0.5}
-          lg={1}
-          display={{
-            xs: "none",
-            sm: "block",
-            md: "block",
-            lg: "block",
-            xl: "block",
-          }}
+          lg={0.5}
+          display={{ xs: "none", sm: "none", md: "block" }}
         >
           <legend>&nbsp;</legend>
           <Typography>
@@ -129,29 +139,30 @@ const WidgetCurrency = () => {
           </Typography>
         </Grid>
 
-        <Grid item xs={12} xl={2.5} lg={2}>
-          <InputLabel id="crypto">Currency to</InputLabel>
+        <Grid item xs={12} xl={2} lg={2}>
+          <label htmlFor="currencyTo">Currency to</label>
           <Select
+            id="currencyTo"
             fullWidth
             native
-            value={crypto}
-            onChange={(e) => setCrypto(e.target.value)}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
             size="small"
+            sx={{
+              backgroundColor: "#f5f5f5",
+            }}
           >
-            {cryptoList.map((item) => (
-              <option key={item.value} value={item.value}>
-                <IconButton size="small">
-                  <Icon icon="mdi:bitcoin" />
-                  {item.name}
-                </IconButton>
+            {currencyList.map((item, index) => (
+              <option key={index} value={item.value}>
+                {item.name}
               </option>
             ))}
           </Select>
         </Grid>
-        <Grid item xs={12} xl={2.5} lg={2}>
-          <InputLabel id="amount">Amount</InputLabel>
-
+        <Grid item xs={12} xl={2} lg={2}>
+          <label htmlFor="result">Amount</label>
           <TextField
+            id="result"
             fullWidth
             value={result.toLocaleString("en-US", {
               style: "currency",
@@ -161,7 +172,7 @@ const WidgetCurrency = () => {
             size="small"
           />
         </Grid>
-        <Grid item xs={12} xl={1.5} lg={2} alignSelf="flex-end">
+        <Grid item xs={12} xl={1} lg={1} alignSelf="flex-end">
           <Button
             fullWidth
             variant="contained"
@@ -170,6 +181,7 @@ const WidgetCurrency = () => {
               borderRadius: 1,
               textTransform: "capitalize",
               padding: 1,
+              backgroundColor: "#49CD5E",
             }}
             onClick={handleSave}
           >
@@ -178,18 +190,18 @@ const WidgetCurrency = () => {
         </Grid>
       </Grid>
 
-      <Grid container>
+      <Grid container sx={useStyles.table}>
         <TableCurrency />
       </Grid>
 
       <Snackbar
         open={open}
         autoHideDuration={6000}
-        onClose={handleClose}
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={handleClose}
+          onClose={handleCloseSnackbar}
           severity="success"
           sx={{ width: "95vw", margin: "0 10px" }}
         >

@@ -33,8 +33,8 @@ function TableUnitsHead(props: TableSortProps) {
       disablePadding: false,
       label: "Currency To",
     },
-    { id: "amount1", numeric: true, disablePadding: false, label: "Amount 1" },
-    { id: "amount2", numeric: true, disablePadding: false, label: "Amount 2" },
+    { id: "amount1", numeric: false, disablePadding: false, label: "Amount 1" },
+    { id: "amount2", numeric: false, disablePadding: false, label: "Amount 2" },
     { id: "type", numeric: false, disablePadding: false, label: "Type" },
   ];
 
@@ -42,12 +42,16 @@ function TableUnitsHead(props: TableSortProps) {
     <>
       <TableHead>
         <TableRow>
-          {headCells.map((headCell) => (
+          {headCells.map((headCell, index) => (
             <TableCell
-              key={headCell.id}
+              key={index}
               align={"left"}
               padding={headCell.disablePadding ? "none" : "normal"}
               sortDirection={orderBy === headCell.id ? order : false}
+              sx={{
+                backgroundColor: "#f5f5f5",
+                padding: 1,
+              }}
             >
               <TableSortLabel
                 active={orderBy === headCell.id}
