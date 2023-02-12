@@ -16,7 +16,9 @@ function TableUnitsHead(props: TableSortProps) {
   const createSortHandler =
     (property: keyof TableCurrencyProps) =>
     (event: React.MouseEvent<unknown>) => {
-      onRequestSort(event, property);
+      if (onRequestSort) {
+        onRequestSort(event, property);
+      }
     };
 
   const headCells: readonly HeadCell[] = [

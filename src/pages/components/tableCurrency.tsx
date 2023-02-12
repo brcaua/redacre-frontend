@@ -17,7 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import React from "react";
-import { currencyTableData } from "../../api/currencyAPI";
+import { currencyAPITable } from "../../api/currencyAPI";
 import { TableCurrencyProps } from "../../interfaces/WidgetProps";
 import TableUnitsHead from "./headTableCurrency";
 
@@ -30,6 +30,10 @@ interface TabelCurrencyProps {
   type: string;
 }
 
+// Takes two items and a key to compare them by.
+// Returns -1 if the second item is less than the first item,
+// 1 if the second item is greater than the first item,
+// and 0 if they are equal.
 function descendingComparator<T>(
   firstItem: T,
   secondItem: T,
@@ -62,7 +66,6 @@ function getComparator<Key extends keyof any>(
 
 // This function sorts the array by comparing the first element of each array.
 // If the order is 0, it will return the second element of the array.
-
 function stableSort<T>(
   array: readonly T[],
   comparator: (a: T, b: T) => number
@@ -78,17 +81,28 @@ function stableSort<T>(
 }
 
 export function TableCurrency() {
+  const [data, setData] = React.useState([]);
+
+  React.useEffect(() => {
+    currencyAPITable
+      .then((res) => {
+        setData(res.data);
+      })
+      .catch((err) => console.log(err));
+  }, []);
+
+  /**
+   * @param data The table data rows.
+   * @returns This function returns a memoized version of the table data rows. It is memoized
+   * so that the table does not re-render when the table data rows are updated.
+   */
   const memoizedmockTableDataRows = React.useMemo(() => {
-    return currencyTableData;
-  }, []); // Memoize the data so we don't have to re-render the component if the data doesn't change.
+    return data;
+  }, [data]);
 
   const [value, setValue] = React.useState(0);
-
-  const [page, setPage] = React.useState(0);
+  const [page, setPage] = React.useState(1);
   const [rowsPerPage] = React.useState(8);
-  const [rows, setRows] = React.useState<TabelCurrencyProps[]>(
-    memoizedmockTableDataRows
-  );
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof TableCurrencyProps>(
     "currencyTo" && "currencyFrom" && "date" && "amount1" && "amount2" && "type"
@@ -96,30 +110,29 @@ export function TableCurrency() {
   const [dense] = React.useState(false);
   const [selected] = React.useState<readonly string[]>([]);
   const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
 
-  const handleNavigation = React.useCallback(
-    (event: React.ChangeEvent<unknown>, value: number) => {
-      setPage(value - 1);
-    },
-    []
-  );
+  // TO FIX: For some reason, the pagination is not working as expected.
+  // I believe it has something to do with the way I am handling the data or in PaginationItem component.
+  function handleNavigation(event: React.ChangeEvent<unknown>, value: number) {
+    setPage(value - 1);
+  }
 
-  const handleRequestSort = React.useCallback(
-    (event: React.MouseEvent<unknown>, property: keyof TabelCurrencyProps) => {
-      setOrder(orderBy === property && order === "asc" ? "desc" : "asc");
-      setOrderBy(property);
-    },
-    [orderBy, order]
-  );
+  function handleRequestSort(
+    event: React.MouseEvent<unknown>,
+    property: keyof TabelCurrencyProps
+  ) {
+    setOrder(orderBy === property && order === "asc" ? "desc" : "asc");
+    setOrderBy(property);
+  }
 
-  // TODO: filter by date, type "Exchanged"
+  // TODO: filter by type "Exchanged" and date
   const handleFilter = () => {
-    const filterByTypeOrDate = memoizedmockTableDataRows.filter(
-      (item) => item.type === "Live Price"
-    );
+    const filterByTypeOrDate = memoizedmockTableDataRows.filter((item: any) => {
+      return item.type === "Live Price";
+    });
 
-    setRows(filterByTypeOrDate);
+    setData(filterByTypeOrDate);
   };
 
   return (
@@ -130,7 +143,6 @@ export function TableCurrency() {
             History
           </Typography>
         </Grid>
-
         <Grid item xs={12} xl={1.5} lg={1}>
           <label htmlFor="fromDate">From date</label>
           <TextField
@@ -145,7 +157,6 @@ export function TableCurrency() {
             size="small"
           />
         </Grid>
-
         <Grid item xs={12} xl={1.5} lg={2}>
           <label htmlFor="toDate">To date</label>
           <TextField
@@ -161,7 +172,6 @@ export function TableCurrency() {
             required
           />
         </Grid>
-
         <Grid item xs={12} xl={1.5} lg={2}>
           <label htmlFor="type">Type</label>
           <Select
@@ -181,7 +191,6 @@ export function TableCurrency() {
             <option value="exchanged">Exchanged</option>
           </Select>
         </Grid>
-
         <Grid item xs={12} xl={1.5} lg={2}>
           <legend>&nbsp;</legend>
           <Button
@@ -205,14 +214,16 @@ export function TableCurrency() {
               order={order}
               orderBy={orderBy}
               onRequestSort={handleRequestSort}
-              rowCount={rows.length}
+              rowCount={data.length}
             />
             <TableBody>
-              {stableSort(rows, getComparator(order, orderBy))
+              {stableSort(
+                memoizedmockTableDataRows,
+                getComparator(order, orderBy)
+              )
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row, index) => {
                   const labelId = `enhanced-table-checkbox-${index}`;
-
                   return (
                     <TableRow hover tabIndex={-1} key={index}>
                       <TableCell component="th" id={labelId} scope="row">
@@ -223,8 +234,8 @@ export function TableCurrency() {
                       <TableCell>{row.amount1}</TableCell>
                       <TableCell>{row.amount2}</TableCell>
                       <TableCell>
-                        {/* if the type is live price the color is red */}
-                        {row.type === "Live Price" ? (
+                        {/* if the type is live price the color is green */}
+                        {row.type !== "Exchanged" ? (
                           <span style={{ color: "#5DBE7E", fontWeight: "700" }}>
                             {row.type}
                           </span>
@@ -250,24 +261,21 @@ export function TableCurrency() {
           </Table>
         </TableContainer>
       </Grid>
-
       <Grid container mt={4} mb={2}>
         <Grid item xs={12}>
           <Stack spacing={2}>
             <Pagination
-              count={Math.ceil(rows.length / rowsPerPage)}
+              count={Math.ceil(data.length / rowsPerPage)}
               color="primary"
               page={page}
               onChange={handleNavigation}
               shape="rounded"
-              // change arrow to "Next"
               renderItem={(item) => (
                 <PaginationItem
                   slots={{ previous: ArrowBackIcon, next: ArrowForwardIcon }}
                   {...item}
                 />
               )}
-              // when is selected change the background color to black with color white
               sx={{
                 "& .Mui-selected": {
                   backgroundColor: "#000000",

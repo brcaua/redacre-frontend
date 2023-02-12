@@ -15,6 +15,7 @@ import { currencyAPI } from "../../api/currencyAPI";
 import { CurrencyContext } from "../../hooks/useCurrency";
 import TableCurrency from "../components/tableCurrency";
 
+// We can separate this style object into a separate file, but for the sake of simplicity, we will keep it here.
 const useStyles = {
   root: {
     display: "flex",
@@ -61,14 +62,19 @@ const WidgetCurrency = () => {
   );
   const { currencyList, cryptoList } = React.useContext(CurrencyContext);
 
+  // I separate this function from useEffect to make it more readable and follow the DRY and Single Responsibility principles.
+  function calculateRate() {
+    if (data) {
+      const result: number = data[crypto][currency] * amount;
+      setResult(result);
+    } else {
+      setResult(0);
+    }
+  }
+
   useEffect(() => {
     try {
-      if (data) {
-        const result: number = data[crypto][currency] * amount;
-        setResult(result);
-      } else {
-        setResult(0);
-      }
+      calculateRate();
     } catch (error) {
       console.log(error);
     }
@@ -182,6 +188,7 @@ const WidgetCurrency = () => {
               textTransform: "capitalize",
               padding: 1,
               backgroundColor: "#49CD5E",
+              fontSize: "1rem",
             }}
             onClick={handleSave}
           >
@@ -198,14 +205,25 @@ const WidgetCurrency = () => {
         open={open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity="success"
-          sx={{ width: "95vw", margin: "0 10px" }}
+          icon={false}
+          sx={{
+            width: "95vw",
+            background: "#49CD5E",
+            color: "#fff",
+            fontWeight: 700,
+            margin: "0 10px",
+            "& .MuiAlert-message": { textAlign: "center", width: "inherit" },
+          }}
         >
-          Dados salvos com sucesso!
+          Exchange submitted!
         </Alert>
       </Snackbar>
     </Container>
